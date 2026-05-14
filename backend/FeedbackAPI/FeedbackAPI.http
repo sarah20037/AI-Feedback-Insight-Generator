@@ -1,0 +1,13 @@
+@FeedbackAPI_HostAddress = http://localhost:5048
+
+GET {{FeedbackAPI_HostAddress}}/api/feedback
+Accept: application/json
+
+###
+
+POST {{FeedbackAPI_HostAddress}}/api/feedback/analyze
+Content-Type: application/json
+
+{
+  "text": "The onboarding process was clear, but response times from support could be faster."
+}

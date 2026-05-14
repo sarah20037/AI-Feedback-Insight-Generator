@@ -1,0 +1,52 @@
+<main class="login-shell">
+  <section class="login-panel" aria-labelledby="login-title">
+    <div class="login-copy">
+      <p class="eyebrow">Feedback Portal</p>
+      <h1 id="login-title">
+        {{ mode === 'register' ? 'Create Customer Account' : mode === 'admin' ? 'Admin Sign In' : 'Sign In To Continue' }}
+      </h1>
+      <p>
+        {{
+          mode === 'register'
+            ? 'Create your account to share feedback with the HR team.'
+            : mode === 'admin'
+              ? 'Enter your admin credentials to review feedback insights.'
+              : 'Access your account to share feedback and view your session.'
+        }}
+      </p>
+    </div>
+
+    <div class="mode-switch" aria-label="Choose sign in type">
+      <button type="button" [class.active]="mode === 'login'" (click)="setMode('login')">Sign In</button>
+      <button type="button" [class.active]="mode === 'register'" (click)="setMode('register')">Register</button>
+      <button type="button" [class.active]="mode === 'admin'" (click)="setMode('admin')">Admin</button>
+    </div>
+
+    <form class="login-form" (ngSubmit)="login()">
+      <label for="username">Username</label>
+      <input
+        id="username"
+        name="username"
+        [(ngModel)]="username"
+        placeholder="Enter your name"
+        autocomplete="name"
+      />
+
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        [(ngModel)]="password"
+        placeholder="Enter your password"
+        autocomplete="current-password"
+      />
+
+      <p class="hint" *ngIf="mode === 'admin'">Admin Username: admin</p>
+      <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+      <button type="submit">{{ mode === 'register' ? 'Create Account' : 'Sign In' }}</button>
+    </form>
+  </section>
+
+</main>
