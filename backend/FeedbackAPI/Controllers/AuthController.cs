@@ -20,49 +20,81 @@ namespace FeedbackAPI.Controllers
         {
             try
             {
-                string connectionString =
+                if (string.IsNullOrWhiteSpace(customer.FullName) ||
+                    string.IsNullOrWhiteSpace(customer.Email) ||
+                    string.IsNullOrWhiteSpace(customer.PasswordHash))
+                {
+                    return BadRequest("Name, email and password are required.");
+                }
+
+                string? connectionString =
                     _configuration.GetConnectionString("DefaultConnection");
+
+                if (string.IsNullOrWhiteSpace(connectionString))
+                {
+                    return StatusCode(500, "Database connection is not configured.");
+                }
 
                 using (SqlConnection con = new SqlConnection(connectionString))
                 {
                     con.Open();
 
+                    string checkQuery = "SELECT COUNT(1) FROM Customers WHERE Email = @Email OR Username = @Username";
+                    SqlCommand checkCmd = new SqlCommand(checkQuery, con);
+                    checkCmd.Parameters.AddWithValue("@Email", customer.Email);
+                    checkCmd.Parameters.AddWithValue("@Username", customer.Username);
+
+                    int existingCount = (int)checkCmd.ExecuteScalar();
+
+                    if (existingCount > 0)
+                    {
+                        return Conflict("This email is already registered.");
+                    }
+
                     string query = @"
                     INSERT INTO Customers
                     (FullName, Email, Username, PasswordHash)
-
+                    OUTPUT INSERTED.CustomerId
                     VALUES
-
                     (@FullName, @Email, @Username, @PasswordHash)
                     ";
 
                     SqlCommand cmd = new SqlCommand(query, con);
-
                     cmd.Parameters.AddWithValue("@FullName", customer.FullName);
-
                     cmd.Parameters.AddWithValue("@Email", customer.Email);
-
                     cmd.Parameters.AddWithValue("@Username", customer.Username);
-
                     cmd.Parameters.AddWithValue("@PasswordHash", customer.PasswordHash);
 
-                    cmd.ExecuteNonQuery();
-                }
+                    int customerId = (int)cmd.ExecuteScalar();
 
-                return Ok("User Registered Successfully");
+                    return Ok(new
+                    {
+                        message = "User Registered Successfully",
+                        customerId,
+                        username = customer.Email,
+                        fullName = customer.FullName,
+                        role = "customer"
+                    });
+                }
             }
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpPost("login")]
         public IActionResult Login(LoginRequest request)
         {
             try
             {
-                string connectionString =
+                string? connectionString =
                     _configuration.GetConnectionString("DefaultConnection");
+
+                if (string.IsNullOrWhiteSpace(connectionString))
+                {
+                    return StatusCode(500, "Database connection is not configured.");
+                }
 
                 using (SqlConnection con = new SqlConnection(connectionString))
                 {
@@ -75,9 +107,7 @@ namespace FeedbackAPI.Controllers
                     ";
 
                     SqlCommand cmd = new SqlCommand(query, con);
-
                     cmd.Parameters.AddWithValue("@Username", request.Username);
-
                     cmd.Parameters.AddWithValue("@PasswordHash", request.PasswordHash);
 
                     SqlDataReader reader = cmd.ExecuteReader();
@@ -88,7 +118,9 @@ namespace FeedbackAPI.Controllers
                         {
                             message = "Login Successful",
                             customerId = reader["CustomerId"],
-                            username = reader["Username"]
+                            username = reader["Username"],
+                            fullName = reader["FullName"],
+                            role = "customer"
                         });
                     }
 
@@ -99,6 +131,30 @@ namespace FeedbackAPI.Controllers
             {
                 return StatusCode(500, ex.Message);
             }
+        }
+
+        [HttpPost("admin-login")]
+        public IActionResult AdminLogin(LoginRequest request)
+        {
+            string? adminEmail = _configuration["AdminAccount:Email"];
+            string? adminPassword = _configuration["AdminAccount:Password"];
+
+            if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+            {
+                return StatusCode(500, "Admin account is not configured.");
+            }
+
+            if (request.Username == adminEmail && request.PasswordHash == adminPassword)
+            {
+                return Ok(new
+                {
+                    message = "Admin Login Successful",
+                    username = "Admin",
+                    role = "admin"
+                });
+            }
+
+            return Unauthorized("Invalid Admin Credentials");
         }
     }
 }

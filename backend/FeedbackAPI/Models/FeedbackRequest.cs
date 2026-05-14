@@ -2,6 +2,6 @@ namespace FeedbackAPI.Models
 {
     public class FeedbackRequest
     {
-        public string Text { get; set; }
+        public string Text { get; set; } = string.Empty;
     }
 }

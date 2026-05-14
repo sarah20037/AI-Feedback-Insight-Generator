@@ -63,6 +63,11 @@ button:hover {
   background: #253044;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .ghost-button {
   border: 1px solid #d3dae3;
   background: #ffffff;
@@ -141,6 +146,41 @@ textarea:focus {
   font-weight: 800;
   margin: 16px 0 0;
   padding: 12px 14px;
+}
+
+.loading-message,
+.error-message {
+  border-radius: 8px;
+  font-weight: 800;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+}
+
+.loading-message {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.error-message {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.submitted-box {
+  border: 1px solid rgba(22, 163, 74, 0.22);
+  border-radius: 8px;
+  background: #f0fdf4;
+  padding: 24px;
+}
+
+.submitted-box h2 {
+  margin-top: 6px;
+}
+
+.submitted-box p:not(.eyebrow) {
+  color: #166534;
+  line-height: 1.55;
+  margin: 10px 0 18px;
 }
 
 .feedback-list {

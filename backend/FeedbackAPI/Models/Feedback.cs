@@ -4,14 +4,22 @@ namespace FeedbackAPI.Models
     {
         public int FeedbackId { get; set; }
 
-        public int CustomerId { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
 
-        public string FeedbackText { get; set; }
+        public string CustomerEmail { get; set; } = string.Empty;
 
-        public string Summary { get; set; }
+        public string FeedbackText { get; set; } = string.Empty;
 
-        public string Sentiment { get; set; }
+        public string Summary { get; set; } = string.Empty;
 
-        public string Emotion { get; set; }
+        public string Sentiment { get; set; } = string.Empty;
+
+        public string IssueCategory { get; set; } = string.Empty;
+
+        public string RecommendedAction { get; set; } = string.Empty;
+
+        public string SubmittedBy { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; }
     }
 }

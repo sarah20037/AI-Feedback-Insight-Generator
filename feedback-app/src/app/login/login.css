@@ -50,7 +50,7 @@ h1 {
 
 .mode-switch {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 22px;
   border-radius: 8px;
@@ -100,6 +100,12 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
 .mode-switch button {
   min-height: 40px;
   border: 0;
@@ -132,6 +138,26 @@ button:hover {
 .error-message {
   background: #fef2f2;
   color: #b91c1c;
+}
+
+.admin-link {
+  min-height: auto;
+  width: max-content;
+  justify-self: center;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 6px;
+  padding: 4px 8px;
+}
+
+.admin-link:hover {
+  background: transparent;
+  color: #111827;
+  text-decoration: underline;
+  transform: none;
 }
 
 @media (max-width: 780px) {

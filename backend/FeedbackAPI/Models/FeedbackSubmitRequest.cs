@@ -2,8 +2,10 @@ namespace FeedbackAPI.Models
 {
     public class FeedbackSubmitRequest
     {
-        public int CustomerId { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
 
-        public string FeedbackText { get; set; }
+        public string CustomerEmail { get; set; } = string.Empty;
+
+        public string FeedbackText { get; set; } = string.Empty;
     }
 }

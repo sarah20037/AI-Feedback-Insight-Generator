@@ -12,25 +12,39 @@
   </header>
 
   <section class="content-panel" *ngIf="role === 'customer'">
-    <div class="section-heading">
+    <div class="section-heading" *ngIf="!hasSubmittedFeedback">
       <p class="eyebrow">Customer View</p>
-      <h2>Share Feedback For Insight Analysis</h2>
+      <h2>Share Your Feedback</h2>
       <p>Your note helps the HR team understand what is working and where support is needed.</p>
     </div>
 
-    <label for="feedback">Feedback</label>
-    <textarea
-      id="feedback"
-      [(ngModel)]="feedbackText"
-      placeholder="Write your feedback here..."
-    ></textarea>
+    <ng-container *ngIf="!hasSubmittedFeedback; else submittedView">
+      <label for="feedback">Feedback</label>
+      <textarea
+        id="feedback"
+        [(ngModel)]="feedbackText"
+        placeholder="Write your feedback here..."
+      ></textarea>
 
-    <div class="actions">
-      <span>{{ feedbackText.length }} characters</span>
-      <button type="button" (click)="submitFeedback()">Submit Feedback</button>
-    </div>
+      <div class="actions">
+        <span>{{ feedbackText.length }} characters</span>
+        <button type="button" (click)="submitFeedback()" [disabled]="isLoading">
+          {{ isLoading ? 'Submitting...' : 'Submit Feedback' }}
+        </button>
+      </div>
 
-    <p class="success-message" *ngIf="successMessage">{{ successMessage }}</p>
+      <p class="loading-message" *ngIf="isLoading">Submitting your feedback, please wait...</p>
+      <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+    </ng-container>
+
+    <ng-template #submittedView>
+      <div class="submitted-box">
+        <p class="eyebrow">Feedback Submitted</p>
+        <h2>Thank you, {{ userName }}</h2>
+        <p>{{ successMessage }}</p>
+        <button type="button" (click)="submitAnotherFeedback()">Submit Another Feedback</button>
+      </div>
+    </ng-template>
   </section>
 
   <section class="content-panel" *ngIf="role === 'admin'">
@@ -40,7 +54,9 @@
       <p>Track sentiment, spot repeated negative themes, and convert feedback into action.</p>
     </div>
 
-    <p class="empty-state" *ngIf="feedbackList.length === 0">No feedback has been submitted yet.</p>
+    <p class="loading-message" *ngIf="isListLoading">Loading feedback records...</p>
+    <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+    <p class="empty-state" *ngIf="!isListLoading && feedbackList.length === 0">No feedback has been submitted yet.</p>
 
     <div class="insight-dashboard" *ngIf="feedbackList.length > 0">
       <article class="metric-card total">
@@ -68,7 +84,7 @@
       <article class="insight-card">
         <span>Most Frequent Negative Review</span>
         <strong>{{ mostFrequentNegativeIssue }}</strong>
-        <p>{{ negativeCount }} negative review(s) found in local feedback.</p>
+        <p>{{ negativeCount }} negative feedback item(s) found.</p>
       </article>
 
       <article class="insight-card action-card">
@@ -84,8 +100,8 @@
       </div>
 
       <article class="action-item" *ngFor="let f of negativeFeedbackList">
-        <p>{{ f.text }}</p>
-        <strong>{{ f.action }}</strong>
+        <p>{{ f.feedbackText }}</p>
+        <strong>{{ f.recommendedAction }}</strong>
       </article>
     </div>
 
@@ -93,12 +109,17 @@
       <article class="feedback-card" *ngFor="let f of feedbackList">
         <div>
           <span>Feedback</span>
-          <p>{{ f.text }}</p>
+          <p>{{ f.feedbackText }}</p>
           <small>Submitted by {{ f.submittedBy }} on {{ f.createdAt | date: 'medium' }}</small>
+        </div>
+        <div>
+          <span>Summary</span>
+          <p>{{ f.summary }}</p>
+          <small>{{ f.issueCategory }}</small>
         </div>
         <div class="sentiment">
           <span>Sentiment</span>
-          <strong [class.good]="f.sentiment === 'Good'" [class.bad]="f.sentiment === 'Bad'">
+          <strong [class.good]="f.sentiment === 'POSITIVE'" [class.bad]="f.sentiment === 'NEGATIVE'">
             {{ f.sentiment }}
           </strong>
         </div>

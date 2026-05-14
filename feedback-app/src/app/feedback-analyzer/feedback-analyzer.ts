@@ -1,18 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-
-type FeedbackSentiment = 'Good' | 'Bad' | 'Neutral';
-
-interface FeedbackItem {
-  id: number;
-  text: string;
-  sentiment: FeedbackSentiment;
-  issue: string;
-  action: string;
-  submittedBy: string;
-  createdAt: string;
-}
+import { ApiService, FeedbackItem, FeedbackSentiment } from '../services/api';
 
 @Component({
   selector: 'app-feedback-analyzer',
@@ -26,54 +15,54 @@ export class FeedbackAnalyzerComponent {
   feedbackText: string = '';
   role: string | null = this.getStoredValue('role');
   userName: string = this.getStoredValue('user') || 'User';
+  userEmail: string = this.getStoredValue('userEmail') || '';
   successMessage: string = '';
-  feedbackList: FeedbackItem[] = [
-    {
-      id: 1,
-      text: 'The HR support response is slow and I had to wait too long for updates.',
-      sentiment: 'Bad',
-      issue: 'Slow response or delays',
-      action: 'Review response timelines, assign clear owners, and share realistic turnaround times with users.',
-      submittedBy: 'Asha',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 2,
-      text: 'The new process is clear and helpful.',
-      sentiment: 'Good',
-      issue: 'Positive feedback',
-      action: 'Share this feedback with the team and continue the current approach.',
-      submittedBy: 'Ravi',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 3,
-      text: 'The portal form is confusing.',
-      sentiment: 'Bad',
-      issue: 'Difficult or confusing process',
-      action: 'Simplify the workflow, improve instructions, and test the process with a small user group.',
-      submittedBy: 'Meera',
-      createdAt: new Date().toISOString(),
-    },
-  ];
+  errorMessage: string = '';
+  isLoading: boolean = false;
+  isListLoading: boolean = false;
+  hasSubmittedFeedback: boolean = false;
+  feedbackList: FeedbackItem[] = [];
+
+  constructor(private api: ApiService) {
+    this.loadFeedback();
+  }
 
   submitFeedback() {
     const text = this.feedbackText.trim();
 
-    if (!text) return;
+    if (!text) {
+      this.errorMessage = 'Please write feedback before submitting.';
+      return;
+    }
 
-    const feedback: FeedbackItem = {
-      id: Date.now(),
-      text,
-      sentiment: 'Neutral',
-      issue: 'General feedback',
-      action: 'Review this feedback manually and decide the next owner, fix, or follow-up message.',
-      submittedBy: this.userName,
-      createdAt: new Date().toISOString(),
-    };
+    if (!this.userName || !this.userEmail) {
+      this.errorMessage = 'Please login again before submitting feedback.';
+      return;
+    }
 
-    this.feedbackList = [feedback, ...this.feedbackList];
-    this.successMessage = 'Feedback received. Thank you for sharing your thoughts.';
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.api.submitFeedback(this.userName, this.userEmail, text).subscribe({
+      next: (response) => {
+        this.feedbackList = [response.feedback, ...this.feedbackList];
+        this.successMessage = 'Feedback submitted successfully. Thank you for sharing your response.';
+        this.hasSubmittedFeedback = true;
+        this.feedbackText = '';
+        this.isLoading = false;
+      },
+      error: () => {
+        this.errorMessage = 'Feedback could not be processed. Please check the backend and AI service.';
+        this.isLoading = false;
+      },
+    });
+  }
+
+  submitAnotherFeedback() {
+    this.hasSubmittedFeedback = false;
+    this.successMessage = '';
+    this.errorMessage = '';
     this.feedbackText = '';
   }
 
@@ -82,6 +71,8 @@ export class FeedbackAnalyzerComponent {
 
     localStorage.removeItem('role');
     localStorage.removeItem('user');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('customerId');
     location.reload();
   }
 
@@ -90,24 +81,24 @@ export class FeedbackAnalyzerComponent {
   }
 
   get positiveCount(): number {
-    return this.countBySentiment('Good');
+    return this.countBySentiment('POSITIVE');
   }
 
   get negativeCount(): number {
-    return this.countBySentiment('Bad');
+    return this.countBySentiment('NEGATIVE');
   }
 
   get neutralCount(): number {
-    return this.countBySentiment('Neutral');
+    return this.countBySentiment('NEUTRAL');
   }
 
   get mostFrequentNegativeIssue(): string {
-    const negativeFeedback = this.feedbackList.filter((feedback) => feedback.sentiment === 'Bad');
+    const negativeFeedback = this.feedbackList.filter((feedback) => feedback.sentiment === 'NEGATIVE');
 
     if (negativeFeedback.length === 0) return 'No repeated negative issue yet';
 
     const issueCounts = negativeFeedback.reduce<Record<string, number>>((counts, feedback) => {
-      const issue = feedback.issue || 'General negative feedback';
+      const issue = feedback.issueCategory || 'General negative feedback';
       counts[issue] = (counts[issue] || 0) + 1;
       return counts;
     }, {});
@@ -117,20 +108,37 @@ export class FeedbackAnalyzerComponent {
 
   get topRecommendedAction(): string {
     const mostFrequentIssue = this.mostFrequentNegativeIssue;
-    const matchedFeedback = this.feedbackList.find((feedback) => feedback.issue === mostFrequentIssue);
+    const matchedFeedback = this.feedbackList.find((feedback) => feedback.issueCategory === mostFrequentIssue);
 
-    if (matchedFeedback) return matchedFeedback.action;
+    if (matchedFeedback) return matchedFeedback.recommendedAction;
     if (this.negativeCount > 0) return 'Read recent negative feedback, group similar complaints, and assign one owner for follow-up.';
 
     return 'Keep monitoring feedback and continue reinforcing what customers already value.';
   }
 
   get negativeFeedbackList(): FeedbackItem[] {
-    return this.feedbackList.filter((feedback) => feedback.sentiment === 'Bad');
+    return this.feedbackList.filter((feedback) => feedback.sentiment === 'NEGATIVE');
   }
 
   private countBySentiment(sentiment: FeedbackSentiment): number {
     return this.feedbackList.filter((feedback) => feedback.sentiment === sentiment).length;
+  }
+
+  private loadFeedback() {
+    if (this.role !== 'admin') return;
+
+    this.isListLoading = true;
+
+    this.api.getFeedback().subscribe({
+      next: (feedback) => {
+        this.feedbackList = feedback;
+        this.isListLoading = false;
+      },
+      error: () => {
+        this.errorMessage = 'Unable to load feedback records from backend.';
+        this.isListLoading = false;
+      },
+    });
   }
 
   private getStoredValue(key: string): string | null {
