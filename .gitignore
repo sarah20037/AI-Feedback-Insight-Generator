@@ -1,0 +1,47 @@
+# ==============================================================================
+# ASP.NET Core & C#
+# ==============================================================================
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+appsettings.Development.json
+# Ignore API Keys / Secrets if stored in specific JSON files
+*secrets*.json
+
+# ==============================================================================
+# Python (FastAPI / AI)
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+
+# ==============================================================================
+# Angular / Node.js
+# ==============================================================================
+node_modules/
+dist/
+tmp/
+out-tsc/
+bazel-out/
+.angular/
+npm-debug.log
+yarn-error.log
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
