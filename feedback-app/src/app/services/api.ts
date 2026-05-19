@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export type FeedbackSentiment = 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
@@ -22,6 +23,7 @@ export interface AnalysisResult {
 
 export interface FeedbackItem {
   feedbackId: number;
+  customerId: number;
   customerName: string;
   customerEmail: string;
   feedbackText: string;
@@ -68,15 +70,14 @@ export class ApiService {
     });
   }
 
-  submitFeedback(customerName: string, customerEmail: string, feedbackText: string): Observable<SubmitFeedbackResponse> {
+  submitFeedback(customerId: number, feedbackText: string): Observable<SubmitFeedbackResponse> {
     return this.http.post<SubmitFeedbackResponse>(`${this.baseUrl}/feedback/submit`, {
-      customerName,
-      customerEmail,
+      customerId,
       feedbackText,
-    });
+    }).pipe(timeout(10000));
   }
 
   getFeedback(): Observable<FeedbackItem[]> {
-    return this.http.get<FeedbackItem[]>(`${this.baseUrl}/feedback`);
+    return this.http.get<FeedbackItem[]>(`${this.baseUrl}/feedback`).pipe(timeout(8000));
   }
 }

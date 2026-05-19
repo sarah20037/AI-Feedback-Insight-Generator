@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { finalize } from 'rxjs/operators';
 import { ApiService, FeedbackItem, FeedbackSentiment } from '../services/api';
 
 @Component({
@@ -10,12 +11,12 @@ import { ApiService, FeedbackItem, FeedbackSentiment } from '../services/api';
   templateUrl: './feedback-analyzer.html',
   styleUrls: ['./feedback-analyzer.css'],
 })
-export class FeedbackAnalyzerComponent {
+export class FeedbackAnalyzerComponent implements OnInit {
 
   feedbackText: string = '';
   role: string | null = this.getStoredValue('role');
   userName: string = this.getStoredValue('user') || 'User';
-  userEmail: string = this.getStoredValue('userEmail') || '';
+  customerId: number | null = this.getStoredNumber('customerId');
   successMessage: string = '';
   errorMessage: string = '';
   isLoading: boolean = false;
@@ -23,7 +24,9 @@ export class FeedbackAnalyzerComponent {
   hasSubmittedFeedback: boolean = false;
   feedbackList: FeedbackItem[] = [];
 
-  constructor(private api: ApiService) {
+  constructor(private api: ApiService) {}
+
+  ngOnInit() {
     this.loadFeedback();
   }
 
@@ -35,7 +38,7 @@ export class FeedbackAnalyzerComponent {
       return;
     }
 
-    if (!this.userName || !this.userEmail) {
+    if (!this.customerId) {
       this.errorMessage = 'Please login again before submitting feedback.';
       return;
     }
@@ -44,17 +47,21 @@ export class FeedbackAnalyzerComponent {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.api.submitFeedback(this.userName, this.userEmail, text).subscribe({
+    this.api.submitFeedback(this.customerId, text).pipe(
+      finalize(() => {
+        this.isLoading = false;
+      })
+    ).subscribe({
       next: (response) => {
-        this.feedbackList = [response.feedback, ...this.feedbackList];
+        this.feedbackList = response.feedback ? [response.feedback, ...this.feedbackList] : this.feedbackList;
         this.successMessage = 'Feedback submitted successfully. Thank you for sharing your response.';
         this.hasSubmittedFeedback = true;
         this.feedbackText = '';
-        this.isLoading = false;
       },
-      error: () => {
-        this.errorMessage = 'Feedback could not be processed. Please check the backend and AI service.';
-        this.isLoading = false;
+      error: (error) => {
+        this.errorMessage = error.name === 'TimeoutError'
+          ? 'Feedback request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
+          : 'Feedback could not be processed. Please check the backend and database.';
       },
     });
   }
@@ -66,12 +73,15 @@ export class FeedbackAnalyzerComponent {
     this.feedbackText = '';
   }
 
+  refreshFeedback() {
+    this.loadFeedback();
+  }
+
   logout() {
     if (typeof window === 'undefined') return;
 
     localStorage.removeItem('role');
     localStorage.removeItem('user');
-    localStorage.removeItem('userEmail');
     localStorage.removeItem('customerId');
     location.reload();
   }
@@ -128,15 +138,20 @@ export class FeedbackAnalyzerComponent {
     if (this.role !== 'admin') return;
 
     this.isListLoading = true;
+    this.errorMessage = '';
 
-    this.api.getFeedback().subscribe({
+    this.api.getFeedback().pipe(
+      finalize(() => {
+        this.isListLoading = false;
+      })
+    ).subscribe({
       next: (feedback) => {
-        this.feedbackList = feedback;
-        this.isListLoading = false;
+        this.feedbackList = Array.isArray(feedback) ? feedback : [];
       },
-      error: () => {
-        this.errorMessage = 'Unable to load feedback records from backend.';
-        this.isListLoading = false;
+      error: (error) => {
+        this.errorMessage = error.name === 'TimeoutError'
+          ? 'Feedback records request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
+          : 'Unable to load feedback records from backend. Please start the backend API and try again.';
       },
     });
   }
@@ -145,5 +160,13 @@ export class FeedbackAnalyzerComponent {
     if (typeof window === 'undefined') return null;
 
     return localStorage.getItem(key);
+  }
+
+  private getStoredNumber(key: string): number | null {
+    const value = this.getStoredValue(key);
+    if (!value) return null;
+
+    const parsedValue = Number(value);
+    return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null;
   }
 }

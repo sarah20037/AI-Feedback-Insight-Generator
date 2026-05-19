@@ -6,7 +6,6 @@
     </div>
 
     <div class="session">
-      <span>{{ userName }} - {{ role }}</span>
       <button type="button" class="ghost-button" (click)="logout()">Logout</button>
     </div>
   </header>
@@ -55,8 +54,11 @@
     </div>
 
     <p class="loading-message" *ngIf="isListLoading">Loading feedback records...</p>
-    <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
-    <p class="empty-state" *ngIf="!isListLoading && feedbackList.length === 0">No feedback has been submitted yet.</p>
+    <div class="error-message" *ngIf="errorMessage">
+      <span>{{ errorMessage }}</span>
+      <button type="button" class="ghost-button" (click)="refreshFeedback()">Retry</button>
+    </div>
+    <p class="empty-state" *ngIf="!isListLoading && !errorMessage && feedbackList.length === 0">No feedback has been submitted yet.</p>
 
     <div class="insight-dashboard" *ngIf="feedbackList.length > 0">
       <article class="metric-card total">

@@ -5,9 +5,10 @@ Accept: application/json
 
 ###
 
-POST {{FeedbackAPI_HostAddress}}/api/feedback/analyze
+POST {{FeedbackAPI_HostAddress}}/api/feedback/submit
 Content-Type: application/json
 
 {
-  "text": "The onboarding process was clear, but response times from support could be faster."
+  "customerId": 1,
+  "feedbackText": "The onboarding process was clear, but response times from support could be faster."
 }
