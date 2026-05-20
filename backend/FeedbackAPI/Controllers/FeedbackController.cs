@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using FeedbackAPI.Models;
 using System.Data;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Net.Http.Headers;
 namespace FeedbackAPI.Controllers
 {
     [ApiController]
@@ -9,10 +12,12 @@ namespace FeedbackAPI.Controllers
     public class FeedbackController : ControllerBase
     {
         private readonly IConfiguration _configuration;
+        private readonly HttpClient _httpClient;
 
         public FeedbackController(IConfiguration configuration)
         {
             _configuration = configuration;
+            _httpClient = new HttpClient();
         }
 
         // GET ALL FEEDBACK
@@ -23,69 +28,36 @@ namespace FeedbackAPI.Controllers
         {
             try
             {
-                string? connectionString =
-                    _configuration.GetConnectionString("DefaultConnection");
+                string? connectionString = _configuration.GetConnectionString("DefaultConnection");
 
                 List<Feedback> feedbackList = new List<Feedback>();
 
-                using (SqlConnection con =
-                    new SqlConnection(connectionString))
+                using var con = new SqlConnection(connectionString);
+                con.Open();
+
+                using var cmd = new SqlCommand("sp_GetFeedbackWithCustomer", con);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 5;
+
+                using var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
                 {
-                    con.Open();
-
-                    SqlCommand cmd =
-                        new SqlCommand("sp_GetFeedbackWithCustomer", con);
-
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.CommandTimeout = 5;
-
-                    SqlDataReader reader =
-                        cmd.ExecuteReader();
-
-                    while (reader.Read())
+                    feedbackList.Add(new Feedback
                     {
-                        feedbackList.Add(new Feedback
-                        {
-                            FeedbackId =
-                                Convert.ToInt32(reader["FeedbackId"]),
-
-                            CustomerId =
-                                Convert.ToInt32(reader["CustomerId"]),
-
-                            CustomerName =
-                                reader["CustomerName"].ToString()
-                                ?? "",
-
-                            CustomerEmail =
-                                reader["CustomerEmail"].ToString()
-                                ?? "",
-
-                            FeedbackText =
-                                reader["FeedbackText"].ToString()
-                                ?? "",
-
-                            Summary =
-                                reader["Summary"].ToString()
-                                ?? "",
-
-                            Sentiment =
-                                reader["Sentiment"].ToString()
-                                ?? "",
-
-                            IssueCategory =
-                                reader["IssueCategory"].ToString()
-                                ?? "",
-
-                            RecommendedAction =
-                                reader["RecommendedAction"].ToString()
-                                ?? "",
-
-                            CreatedAt =
-                                reader["SubmittedAt"] == DBNull.Value
-                                    ? DateTime.Now
-                                    : Convert.ToDateTime(reader["SubmittedAt"])
-                        });
-                    }
+                        FeedbackId = Convert.ToInt32(reader["FeedbackId"]),
+                        CustomerId = Convert.ToInt32(reader["CustomerId"]),
+                        CustomerName = reader["CustomerName"].ToString() ?? "",
+                        CustomerEmail = reader["CustomerEmail"].ToString() ?? "",
+                        FeedbackText = reader["FeedbackText"].ToString() ?? "",
+                        Summary = reader["Summary"].ToString() ?? "",
+                        Sentiment = reader["Sentiment"].ToString() ?? "",
+                        IssueCategory = reader["IssueCategory"].ToString() ?? "",
+                        RecommendedAction = reader["RecommendedAction"].ToString() ?? "",
+                        CreatedAt = reader["SubmittedAt"] == DBNull.Value 
+                            ? DateTime.Now 
+                            : Convert.ToDateTime(reader["SubmittedAt"])
+                    });
                 }
 
                 return Ok(feedbackList.Select(f => new {
@@ -113,7 +85,7 @@ namespace FeedbackAPI.Controllers
 
         [HttpPost("submit")]
 
-        public IActionResult SubmitFeedback(
+        public async Task<IActionResult> SubmitFeedback(
             FeedbackSubmitRequest request)
         {
             if (request.CustomerId <= 0)
@@ -126,53 +98,114 @@ namespace FeedbackAPI.Controllers
                 return BadRequest("Feedback text is required.");
             }
 
+            string apiKey = _configuration["OpenRouter:ApiKey"] ?? "";
+            string baseUrl = _configuration["OpenRouter:BaseUrl"] ?? "";
+            string model = _configuration["OpenRouter:Model"] ?? "";
+
+            string prompt = $@"
+You are an API.
+
+You MUST return ONLY valid JSON.
+
+No explanation.
+No markdown.
+No headings.
+No extra text.
+
+Analyze this customer feedback:
+
+""{request.FeedbackText}""
+
+Return EXACTLY this format:
+
+{{
+  ""summary"": ""short summary"",
+  ""sentiment"": ""POSITIVE or NEGATIVE or NEUTRAL"",
+  ""category"": ""issue category"",
+  ""recommendedAction"": ""recommended fix""
+}}
+
+ONLY RETURN JSON.
+";
+
+            var openRouterRequest = new
+            {
+                model = model,
+                messages = new[]
+                {
+                    new { role = "user", content = prompt }
+                },
+                temperature = 0.2
+            };
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, baseUrl)
+            {
+                Content = JsonContent.Create(openRouterRequest)
+            };
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            var aiResponse = await _httpClient.SendAsync(requestMessage);
+            string responseString = await aiResponse.Content.ReadAsStringAsync();
+
+            AIResponse? aiResult = null;
+            try
+            {
+                using var document = JsonDocument.Parse(responseString);
+                string text = document.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
+
+                text = text.Replace("```json", "");
+                text = text.Replace("```", "");
+                text = text.Trim();
+
+                int start = text.IndexOf("{");
+                int end = text.LastIndexOf("}") + 1;
+
+                if (start != -1 && end != -1)
+                {
+                    text = text.Substring(start, end - start);
+                }
+
+                aiResult = JsonSerializer.Deserialize<AIResponse>(text);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing AI response: {ex.Message}");
+            }
+
+            if (aiResult == null)
+            {
+                aiResult = new AIResponse 
+                {
+                    summary = "Error analyzing feedback",
+                    sentiment = "NEUTRAL",
+                    category = "general",
+                    recommendedAction = "Review manually"
+                };               
+            }
+
             string? connectionString =
                 _configuration.GetConnectionString(
                     "DefaultConnection");
 
-            AIResponse aiResult = AnalyzeFeedbackFast(request.FeedbackText);
             int feedbackId;
 
             try
             {
-                using (SqlConnection con =
-                    new SqlConnection(connectionString))
-                {
-                    con.Open();
+                using var con = new SqlConnection(connectionString);
+                con.Open();
 
-                    SqlCommand cmd =
-                        new SqlCommand("sp_SubmitFeedback", con);
+                using var cmd = new SqlCommand("sp_SubmitFeedback", con);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 5;
 
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.CommandTimeout = 5;
+                cmd.Parameters.AddWithValue("@CustomerId", request.CustomerId);
+                cmd.Parameters.AddWithValue("@FeedbackText", request.FeedbackText);
+                cmd.Parameters.AddWithValue("@Summary", aiResult.summary);
+                cmd.Parameters.AddWithValue("@Sentiment", aiResult.sentiment);
+                cmd.Parameters.AddWithValue("@IssueCategory", aiResult.category);
+                cmd.Parameters.AddWithValue("@RecommendedAction", aiResult.recommendedAction);
 
-                    cmd.Parameters.AddWithValue(
-                        "@CustomerId",
-                        request.CustomerId);
-
-                    cmd.Parameters.AddWithValue(
-                        "@FeedbackText",
-                        request.FeedbackText);
-
-                    cmd.Parameters.AddWithValue(
-                        "@Summary",
-                        aiResult.summary);
-
-                    cmd.Parameters.AddWithValue(
-                        "@Sentiment",
-                        aiResult.sentiment);
-
-                    cmd.Parameters.AddWithValue(
-                        "@IssueCategory",
-                        aiResult.category);
-
-                    cmd.Parameters.AddWithValue(
-                        "@RecommendedAction",
-                        aiResult.recommendedAction);
-
-                    feedbackId =
-                        (int)cmd.ExecuteScalar();
-                }
+                feedbackId = (int)cmd.ExecuteScalar();
             }
             catch (Exception ex)
             {
@@ -198,66 +231,5 @@ namespace FeedbackAPI.Controllers
                 aiAnalysis = aiResult
             });
         }
-
-        private static AIResponse AnalyzeFeedbackFast(string feedbackText)
-        {
-            string text = feedbackText.ToLowerInvariant();
-
-            string[] negativeWords = { "bad", "slow", "difficult", "crash", "error", "issue", "problem", "poor", "delay", "not working", "hard" };
-            string[] positiveWords = { "good", "great", "excellent", "easy", "fast", "nice", "helpful", "love", "satisfied" };
-
-            bool isNegative = negativeWords.Any(text.Contains);
-            bool isPositive = positiveWords.Any(text.Contains);
-
-            string sentiment = isNegative && !isPositive
-                ? "NEGATIVE"
-                : isPositive && !isNegative
-                    ? "POSITIVE"
-                    : "NEUTRAL";
-
-            string category = text.Contains("slow") || text.Contains("delay") || text.Contains("fast")
-                ? "performance"
-                : text.Contains("crash") || text.Contains("error") || text.Contains("not working")
-                    ? "issue"
-                    : text.Contains("difficult") || text.Contains("hard") || text.Contains("easy")
-                        ? "usability"
-                        : "general";
-
-            string recommendedAction = sentiment == "NEGATIVE"
-                ? category == "performance"
-                    ? "Optimize response time"
-                    : category == "issue"
-                        ? "Investigate and fix the reported issue"
-                        : "Review the feedback and follow up with the customer"
-                : "No action required";
-
-            string summary = sentiment == "POSITIVE"
-                ? "Customer shared positive feedback"
-                : sentiment == "NEGATIVE"
-                    ? "Customer reported an issue"
-                    : "Customer shared neutral feedback";
-
-            return new AIResponse
-            {
-                summary = summary,
-                sentiment = sentiment,
-                category = category,
-                recommendedAction = recommendedAction
-            };
-        }
-    }
-
-
-    // MODEL FOR AI RESPONSE
-
-    public class AIResponse
-    {
-        public string summary { get; set; } = "";
-
-        public string sentiment { get; set; } = "";
-
-        public string category { get; set; } = "";
-
-        public string recommendedAction { get; set; } = "";
     }
 }

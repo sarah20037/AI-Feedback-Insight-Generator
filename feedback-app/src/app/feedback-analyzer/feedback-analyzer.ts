@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs/operators';
@@ -24,7 +24,7 @@ export class FeedbackAnalyzerComponent implements OnInit {
   hasSubmittedFeedback: boolean = false;
   feedbackList: FeedbackItem[] = [];
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.loadFeedback();
@@ -50,6 +50,7 @@ export class FeedbackAnalyzerComponent implements OnInit {
     this.api.submitFeedback(this.customerId, text).pipe(
       finalize(() => {
         this.isLoading = false;
+        this.cdr.detectChanges();
       })
     ).subscribe({
       next: (response) => {
@@ -62,6 +63,7 @@ export class FeedbackAnalyzerComponent implements OnInit {
         this.errorMessage = error.name === 'TimeoutError'
           ? 'Feedback request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
           : 'Feedback could not be processed. Please check the backend and database.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -143,6 +145,7 @@ export class FeedbackAnalyzerComponent implements OnInit {
     this.api.getFeedback().pipe(
       finalize(() => {
         this.isListLoading = false;
+        this.cdr.detectChanges();
       })
     ).subscribe({
       next: (feedback) => {
@@ -152,6 +155,7 @@ export class FeedbackAnalyzerComponent implements OnInit {
         this.errorMessage = error.name === 'TimeoutError'
           ? 'Feedback records request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
           : 'Unable to load feedback records from backend. Please start the backend API and try again.';
+        this.cdr.detectChanges();
       },
     });
   }

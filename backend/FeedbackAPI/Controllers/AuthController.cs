@@ -35,47 +35,42 @@ namespace FeedbackAPI.Controllers
                     return StatusCode(500, "Database connection is not configured.");
                 }
 
-                using (SqlConnection con = new SqlConnection(connectionString))
+                using var con = new SqlConnection(connectionString);
+                con.Open();
+
+                string checkQuery = "SELECT COUNT(1) FROM Customers WHERE Email = @Email OR Username = @Username";
+                using var checkCmd = new SqlCommand(checkQuery, con);
+                checkCmd.Parameters.AddWithValue("@Email", customer.Email);
+                checkCmd.Parameters.AddWithValue("@Username", customer.Username);
+
+                int existingCount = (int)checkCmd.ExecuteScalar();
+
+                if (existingCount > 0)
                 {
-                    con.Open();
-
-                    string checkQuery = "SELECT COUNT(1) FROM Customers WHERE Email = @Email OR Username = @Username";
-                    SqlCommand checkCmd = new SqlCommand(checkQuery, con);
-                    checkCmd.Parameters.AddWithValue("@Email", customer.Email);
-                    checkCmd.Parameters.AddWithValue("@Username", customer.Username);
-
-                    int existingCount = (int)checkCmd.ExecuteScalar();
-
-                    if (existingCount > 0)
-                    {
-                        return Conflict("This email is already registered.");
-                    }
-
-                    string query = @"
-                    INSERT INTO Customers
-                    (FullName, Email, Username, PasswordHash)
-                    OUTPUT INSERTED.CustomerId
-                    VALUES
-                    (@FullName, @Email, @Username, @PasswordHash)
-                    ";
-
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@FullName", customer.FullName);
-                    cmd.Parameters.AddWithValue("@Email", customer.Email);
-                    cmd.Parameters.AddWithValue("@Username", customer.Username);
-                    cmd.Parameters.AddWithValue("@PasswordHash", customer.PasswordHash);
-
-                    int customerId = (int)cmd.ExecuteScalar();
-
-                    return Ok(new
-                    {
-                        message = "User Registered Successfully",
-                        customerId,
-                        username = customer.Email,
-                        fullName = customer.FullName,
-                        role = "customer"
-                    });
+                    return Conflict("This email is already registered.");
                 }
+
+                string query = @"
+                INSERT INTO Customers (FullName, Email, Username, PasswordHash)
+                OUTPUT INSERTED.CustomerId
+                VALUES (@FullName, @Email, @Username, @PasswordHash)";
+
+                using var cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@FullName", customer.FullName);
+                cmd.Parameters.AddWithValue("@Email", customer.Email);
+                cmd.Parameters.AddWithValue("@Username", customer.Username);
+                cmd.Parameters.AddWithValue("@PasswordHash", customer.PasswordHash);
+
+                int customerId = (int)cmd.ExecuteScalar();
+
+                return Ok(new
+                {
+                    message = "User Registered Successfully",
+                    customerId,
+                    username = customer.Email,
+                    fullName = customer.FullName,
+                    role = "customer"
+                });
             }
             catch (Exception ex)
             {
@@ -96,36 +91,30 @@ namespace FeedbackAPI.Controllers
                     return StatusCode(500, "Database connection is not configured.");
                 }
 
-                using (SqlConnection con = new SqlConnection(connectionString))
+                using var con = new SqlConnection(connectionString);
+                con.Open();
+
+                string query = "SELECT * FROM Customers WHERE Username = @Username AND PasswordHash = @PasswordHash";
+
+                using var cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@Username", request.Username);
+                cmd.Parameters.AddWithValue("@PasswordHash", request.PasswordHash);
+
+                using var reader = cmd.ExecuteReader();
+
+                if (reader.Read())
                 {
-                    con.Open();
-
-                    string query = @"
-                    SELECT * FROM Customers
-                    WHERE Username = @Username
-                    AND PasswordHash = @PasswordHash
-                    ";
-
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@Username", request.Username);
-                    cmd.Parameters.AddWithValue("@PasswordHash", request.PasswordHash);
-
-                    SqlDataReader reader = cmd.ExecuteReader();
-
-                    if (reader.Read())
+                    return Ok(new
                     {
-                        return Ok(new
-                        {
-                            message = "Login Successful",
-                            customerId = reader["CustomerId"],
-                            username = reader["Username"],
-                            fullName = reader["FullName"],
-                            role = "customer"
-                        });
-                    }
-
-                    return Unauthorized("Invalid Username or Password");
+                        message = "Login Successful",
+                        customerId = reader["CustomerId"],
+                        username = reader["Username"],
+                        fullName = reader["FullName"],
+                        role = "customer"
+                    });
                 }
+
+                return Unauthorized("Invalid Username or Password");
             }
             catch (Exception ex)
             {
