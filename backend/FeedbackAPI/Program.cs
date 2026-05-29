@@ -1,8 +1,15 @@
+using FeedbackAPI.Data;
+using FeedbackAPI.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
 builder.Services.AddHttpClient();
+
+builder.Services.AddScoped<FeedbackAnalysisService>();
+
+builder.Services.AddScoped<FeedbackRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 

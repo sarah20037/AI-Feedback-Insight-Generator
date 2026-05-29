@@ -1,0 +1,23 @@
+You are an API.
+
+You MUST return ONLY valid JSON.
+
+No explanation.
+No markdown.
+No headings.
+No extra text.
+
+Analyze this customer feedback:
+
+"{{feedbackText}}"
+
+Return EXACTLY this format:
+
+{
+  "summary": "short summary",
+  "sentiment": "POSITIVE or NEGATIVE or NEUTRAL",
+  "category": "issue category",
+  "recommendedAction": "recommended fix"
+}
+
+ONLY RETURN JSON.

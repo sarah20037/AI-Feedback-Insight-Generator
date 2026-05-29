@@ -1,0 +1,118 @@
+<section class="content-panel">
+  <div class="section-heading">
+    <h2>Feedback Insight Review</h2>
+    <p>Track sentiment, spot repeated negative feedback, and convert reviews into action.</p>
+  </div>
+
+  <p class="loading-message" *ngIf="isListLoading">Loading feedback records...</p>
+  <div class="error-message" *ngIf="errorMessage">
+    <span>{{ errorMessage }}</span>
+    <button type="button" class="ghost-button" (click)="refreshFeedback()">Retry</button>
+  </div>
+  <p class="empty-state" *ngIf="!isListLoading && !errorMessage && feedbackList.length === 0">No feedback has been submitted yet.</p>
+
+  <div class="insight-dashboard" *ngIf="feedbackList.length > 0">
+    <article class="metric-card total">
+      <span>Total Reviews</span>
+      <strong>{{ totalFeedback }}</strong>
+    </article>
+
+    <article class="metric-card positive">
+      <span>Positive Reviews</span>
+      <strong>{{ positiveCount }}</strong>
+    </article>
+
+    <article class="metric-card negative">
+      <span>Negative Reviews</span>
+      <strong>{{ negativeCount }}</strong>
+    </article>
+
+    <article class="metric-card neutral">
+      <span>Neutral Reviews</span>
+      <strong>{{ neutralCount }}</strong>
+    </article>
+  </div>
+
+  <div class="review-chart-panel" *ngIf="feedbackList.length > 0">
+    <div class="pie-chart" [style.background]="reviewPieChartBackground">
+      <span>{{ totalFeedback }}</span>
+      <small>Total</small>
+    </div>
+
+    <div class="chart-legend">
+      <div>
+        <i class="legend-dot positive-dot"></i>
+        <span>Positive</span>
+        <strong>{{ positiveCount }} ({{ positivePercent }}%)</strong>
+      </div>
+      <div>
+        <i class="legend-dot negative-dot"></i>
+        <span>Negative</span>
+        <strong>{{ negativeCount }} ({{ negativePercent }}%)</strong>
+      </div>
+      <div>
+        <i class="legend-dot neutral-dot"></i>
+        <span>Neutral</span>
+        <strong>{{ neutralCount }} ({{ neutralPercent }}%)</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-grid" *ngIf="feedbackList.length > 0">
+    <article class="insight-card">
+      <span>Most Frequent Negative Review</span>
+      <strong>{{ mostFrequentNegativeIssue }}</strong>
+      <p>{{ negativeCount }} negative feedbacks found.</p>
+    </article>
+
+    <article class="insight-card action-card">
+      <span>Recommended Action</span>
+      <strong>{{ topRecommendedAction }}</strong>
+    </article>
+  </div>
+
+  <div class="negative-review-panel" *ngIf="topNegativeFeedbacks.length > 0">
+    <div>
+      <span>Negative Review Focus</span>
+      <h3>Top 5 Bad Feedbacks</h3>
+    </div>
+
+    <article class="action-item" *ngFor="let item of topNegativeFeedbacks">
+      <p>{{ item.feedback.feedbackText }}</p>
+      <small>{{ item.feedback.issueCategory }}</small>
+      <strong>{{ item.feedback.recommendedAction }}</strong>
+    </article>
+  </div>
+
+  <div class="list-heading" *ngIf="feedbackList.length > 0">
+    <div>
+      <span>Latest Feedback</span>
+      <h3>{{ showAllFeedback ? 'All Feedback' : 'Top 10 Latest Feedback' }}</h3>
+    </div>
+
+    <button type="button" class="ghost-button" *ngIf="hasMoreFeedback" (click)="toggleFeedbackView()">
+      {{ showAllFeedback ? 'Show Top 10' : 'View All Feedback' }}
+    </button>
+  </div>
+
+  <div class="feedback-list" *ngIf="feedbackList.length > 0">
+    <article class="feedback-card" *ngFor="let f of visibleFeedbackList">
+      <div>
+        <span>Feedback</span>
+        <p>{{ f.feedbackText }}</p>
+        <small>Submitted by {{ f.submittedBy }} on {{ f.createdAt | date: 'medium' }}</small>
+      </div>
+      <div>
+        <span>Summary</span>
+        <p>{{ f.summary }}</p>
+        <small>{{ f.issueCategory }}</small>
+      </div>
+      <div class="sentiment">
+        <span>Sentiment</span>
+        <strong [class.good]="f.sentiment === 'POSITIVE'" [class.bad]="f.sentiment === 'NEGATIVE'">
+          {{ f.sentiment }}
+        </strong>
+      </div>
+    </article>
+  </div>
+</section>
