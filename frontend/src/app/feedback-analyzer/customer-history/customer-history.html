@@ -1,0 +1,30 @@
+<section class="content-panel customer-history-panel" style="margin-top: 28px;">
+  <div class="list-heading">
+    <div>
+      <p class="eyebrow">History</p>
+      <h2>Your Submitted Feedback</h2>
+    </div>
+    <button type="button" class="ghost-button" (click)="loadPastFeedbacks()" [disabled]="isLoading">
+      {{ isLoading ? 'Loading...' : hasRequestedHistory ? 'Refresh' : 'Load History' }}
+    </button>
+  </div>
+
+  <p class="loading-message" *ngIf="isLoading">Loading your feedback history...</p>
+  <div class="error-message" *ngIf="errorMessage">
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <p class="empty-state" *ngIf="hasRequestedHistory && !isLoading && !errorMessage && pastFeedbacks.length === 0">
+    You have not submitted any feedback yet. Share your first response above!
+  </p>
+
+  <div class="feedback-list" *ngIf="!isLoading && !errorMessage && pastFeedbacks.length > 0">
+    <article class="feedback-card" *ngFor="let f of pastFeedbacks">
+      <div>
+        <span>Your Feedback</span>
+        <p>{{ f.feedbackText }}</p>
+        <small>Submitted on {{ f.createdAt | date: 'medium' }}</small>
+      </div>
+    </article>
+  </div>
+</section>

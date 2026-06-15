@@ -62,7 +62,7 @@ export class LoginComponent {
 
     if (this.mode === 'register') {
       this.api.register(name, loginId, this.password).subscribe({
-        next: (response) => this.startSession(response.fullName || name, 'customer', response.customerId),
+        next: (response) => this.startSession(response.fullName || name, 'customer', response.customerId, true),
         error: () => this.showError('Registration failed. The email may already be registered.'),
       });
     } else if (this.mode === 'admin') {
@@ -78,11 +78,12 @@ export class LoginComponent {
     }
   }
 
-  private startSession(username: string, role: 'customer' | 'admin', customerId?: number) {
+  private startSession(username: string, role: 'customer' | 'admin', customerId?: number, isFirstTimeUser = false) {
     if (typeof window === 'undefined') return;
 
     localStorage.setItem('role', role);
     localStorage.setItem('user', username);
+    localStorage.setItem('isFirstTimeUser', isFirstTimeUser ? 'true' : 'false');
     if (customerId) localStorage.setItem('customerId', customerId.toString());
 
     location.reload();

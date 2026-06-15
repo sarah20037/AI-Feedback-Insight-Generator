@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs/operators';
-import { ApiService, FeedbackItem, FeedbackSentiment } from '../../services/api';
+import { ApiService, FeedbackItem } from '../../services/api';
 
 interface NegativeFeedbackInsight {
   feedback: FeedbackItem;
@@ -17,38 +17,58 @@ interface NegativeFeedbackInsight {
 })
 export class AdminFeedbackPanelComponent implements OnInit {
   feedbackList: FeedbackItem[] = [];
+  topNegativeFeedbacks: NegativeFeedbackInsight[] = [];
+  totalFeedback = 0;
+  positiveCount = 0;
+  negativeCount = 0;
+  neutralCount = 0;
   isListLoading = false;
+  isNextPageLoading = false;
   errorMessage = '';
-  showAllFeedback = false;
+  hasLoadedOverview = false;
+  currentPage = 1;
+  readonly pageSize = 10;
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.loadFeedback();
+    this.loadOverview();
   }
 
   refreshFeedback() {
-    this.loadFeedback();
+    this.currentPage = 1;
+    this.loadOverview();
   }
 
-  toggleFeedbackView() {
-    this.showAllFeedback = !this.showAllFeedback;
-  }
+  loadNextFeedbackPage() {
+    if (this.isNextPageLoading || !this.hasMoreFeedback) {
+      return;
+    }
 
-  get totalFeedback(): number {
-    return this.feedbackList.length;
-  }
+    this.isNextPageLoading = true;
+    this.errorMessage = '';
 
-  get positiveCount(): number {
-    return this.countBySentiment('POSITIVE');
-  }
-
-  get negativeCount(): number {
-    return this.countBySentiment('NEGATIVE');
-  }
-
-  get neutralCount(): number {
-    return this.countBySentiment('NEUTRAL');
+    this.api.getFeedbackPage(this.currentPage + 1, this.pageSize).pipe(
+      finalize(() => {
+        this.isNextPageLoading = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (result) => {
+        this.feedbackList = [
+          ...this.feedbackList,
+          ...this.sortLatestFirst(result.items),
+        ];
+        this.currentPage = result.page;
+        this.totalFeedback = result.totalCount;
+      },
+      error: (error) => {
+        this.errorMessage = error.name === 'TimeoutError'
+          ? 'Next feedback page request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
+          : 'Unable to load the next 10 feedback records from backend.';
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   get mostFrequentNegativeIssue(): string {
@@ -64,34 +84,13 @@ export class AdminFeedbackPanelComponent implements OnInit {
     return 'Keep monitoring feedback and continue reinforcing what customers already value.';
   }
 
-  get topNegativeFeedbacks(): NegativeFeedbackInsight[] {
-    const negativeFeedback = this.feedbackList.filter((feedback) => feedback.sentiment === 'NEGATIVE');
-    const repeatCounts = negativeFeedback
-      .reduce<Record<string, number>>((counts, feedback) => {
-        const issueCategory = this.getNegativeIssueCategory(feedback);
-        counts[issueCategory] = (counts[issueCategory] || 0) + 1;
-        return counts;
-      }, {});
-
-    return negativeFeedback
-      .map((feedback) => ({
-        feedback,
-        repeatCount: repeatCounts[this.getNegativeIssueCategory(feedback)] || 1,
-      }))
-      .sort((a, b) => {
-        return b.repeatCount - a.repeatCount
-          || new Date(b.feedback.createdAt).getTime() - new Date(a.feedback.createdAt).getTime();
-      })
-      .slice(0, 5);
-  }
-
   get reviewPieChartBackground(): string {
     if (this.totalFeedback === 0) return '#e5e7eb';
 
     const positiveEnd = this.toPiePercent(this.positiveCount);
     const negativeEnd = positiveEnd + this.toPiePercent(this.negativeCount);
 
-    return `conic-gradient(#16a34a 0 ${positiveEnd}%, #dc2626 ${positiveEnd}% ${negativeEnd}%, #c2410c ${negativeEnd}% 100%)`;
+    return `conic-gradient(#16a34a 0 ${positiveEnd}%, #dc2626 ${positiveEnd}% ${negativeEnd}%, #ca8a04 ${negativeEnd}% 100%)`;
   }
 
   get positivePercent(): number {
@@ -118,19 +117,11 @@ export class AdminFeedbackPanelComponent implements OnInit {
   }
 
   get visibleFeedbackList(): FeedbackItem[] {
-    const latestFeedback = [...this.feedbackList].sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
-    return this.showAllFeedback ? latestFeedback : latestFeedback.slice(0, 10);
+    return this.feedbackList;
   }
 
   get hasMoreFeedback(): boolean {
-    return this.feedbackList.length > 10;
-  }
-
-  private countBySentiment(sentiment: FeedbackSentiment): number {
-    return this.feedbackList.filter((feedback) => feedback.sentiment === sentiment).length;
+    return this.feedbackList.length < this.totalFeedback;
   }
 
   private getNegativeIssueCategory(feedback: FeedbackItem): string {
@@ -147,7 +138,7 @@ export class AdminFeedbackPanelComponent implements OnInit {
     return Math.round(this.toPiePercent(count));
   }
 
-  private loadFeedback() {
+  private loadOverview() {
     this.isListLoading = true;
     this.errorMessage = '';
 
@@ -158,15 +149,66 @@ export class AdminFeedbackPanelComponent implements OnInit {
       })
     ).subscribe({
       next: (feedback) => {
-        this.feedbackList = Array.isArray(feedback) ? feedback : [];
-        this.showAllFeedback = false;
+        const latestFeedback = this.sortLatestFirst(feedback);
+        this.feedbackList = latestFeedback.slice(0, this.pageSize);
+        this.topNegativeFeedbacks = this.toNegativeInsights(this.getTopNegativeFeedbacks(latestFeedback));
+        this.totalFeedback = latestFeedback.length;
+        this.positiveCount = this.countBySentiment(latestFeedback, 'POSITIVE');
+        this.negativeCount = this.countBySentiment(latestFeedback, 'NEGATIVE');
+        this.neutralCount = this.countBySentiment(latestFeedback, 'NEUTRAL');
+        this.currentPage = 1;
+        this.hasLoadedOverview = true;
       },
       error: (error) => {
+        this.hasLoadedOverview = true;
         this.errorMessage = error.name === 'TimeoutError'
           ? 'Feedback records request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
           : 'Unable to load feedback records from backend. Please start the backend API and try again.';
         this.cdr.detectChanges();
       },
     });
+  }
+
+  private toNegativeInsights(feedback: FeedbackItem[]): NegativeFeedbackInsight[] {
+    if (!Array.isArray(feedback)) return [];
+
+    const repeatCounts = feedback.reduce<Record<string, number>>((counts, item) => {
+      const issueCategory = this.getNegativeIssueCategory(item);
+      counts[issueCategory] = (counts[issueCategory] || 0) + 1;
+      return counts;
+    }, {});
+
+    return feedback.map((item) => ({
+      feedback: item,
+      repeatCount: repeatCounts[this.getNegativeIssueCategory(item)] || 1,
+    }));
+  }
+
+  private sortLatestFirst(feedback: FeedbackItem[]): FeedbackItem[] {
+    if (!Array.isArray(feedback)) return [];
+
+    return [...feedback].sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }
+
+  private countBySentiment(feedback: FeedbackItem[], sentiment: string): number {
+    return feedback.filter((item) => item.sentiment === sentiment).length;
+  }
+
+  private getTopNegativeFeedbacks(feedback: FeedbackItem[]): FeedbackItem[] {
+    const negativeFeedback = feedback.filter((item) => item.sentiment === 'NEGATIVE');
+    const repeatCounts = negativeFeedback.reduce<Record<string, number>>((counts, item) => {
+      const issueCategory = this.getNegativeIssueCategory(item);
+      counts[issueCategory] = (counts[issueCategory] || 0) + 1;
+      return counts;
+    }, {});
+
+    return negativeFeedback
+      .sort((a, b) => {
+        return (repeatCounts[this.getNegativeIssueCategory(b)] || 0) - (repeatCounts[this.getNegativeIssueCategory(a)] || 0)
+          || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 5);
   }
 }

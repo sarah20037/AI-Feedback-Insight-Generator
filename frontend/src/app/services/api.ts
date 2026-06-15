@@ -41,6 +41,25 @@ export interface SubmitFeedbackResponse {
   aiAnalysis: AnalysisResult;
 }
 
+export interface FeedbackOverview {
+  items: FeedbackItem[];
+  latestNegativeItems: FeedbackItem[];
+  totalCount: number;
+  positiveCount: number;
+  negativeCount: number;
+  neutralCount: number;
+}
+
+export interface FeedbackPageResult {
+  items: FeedbackItem[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  positiveCount: number;
+  negativeCount: number;
+  neutralCount: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly baseUrl = environment.apiUrl;
@@ -79,5 +98,22 @@ export class ApiService {
 
   getFeedback(): Observable<FeedbackItem[]> {
     return this.http.get<FeedbackItem[]>(`${this.baseUrl}/feedback`).pipe(timeout(8000));
+  }
+
+  getFeedbackOverview(): Observable<FeedbackOverview> {
+    return this.http.get<FeedbackOverview>(`${this.baseUrl}/feedback/overview`).pipe(timeout(8000));
+  }
+
+  getFeedbackPage(page: number, pageSize = 10): Observable<FeedbackPageResult> {
+    return this.http.get<FeedbackPageResult>(`${this.baseUrl}/feedback/page`, {
+      params: {
+        page,
+        pageSize,
+      },
+    }).pipe(timeout(8000));
+  }
+
+  getCustomerFeedback(customerId: number): Observable<FeedbackItem[]> {
+    return this.http.get<FeedbackItem[]>(`${this.baseUrl}/feedback/customer/${customerId}`).pipe(timeout(8000));
   }
 }

@@ -1,7 +1,7 @@
 <main class="workspace">
   <header class="topbar">
     <div>
-      <p class="eyebrow">Welcome Back</p>
+      <p class="eyebrow">{{ isFirstTimeUser ? 'Welcome' : 'Welcome Back' }}</p>
       <h1>{{ userName }}</h1>
     </div>
 

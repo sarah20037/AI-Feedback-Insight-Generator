@@ -269,7 +269,7 @@ textarea:focus {
 }
 
 .metric-card.neutral {
-  border-top: 4px solid #c2410c;
+  border-top: 4px solid #ca8a04;
 }
 
 .action-grid {
@@ -373,8 +373,9 @@ textarea:focus {
 }
 
 .neutral-dot {
-  background: #c2410c;
+  background: #ca8a04;
 }
+
 
 .insight-card {
   padding: 20px;
@@ -467,12 +468,22 @@ textarea:focus {
   margin-top: 6px;
 }
 
-.sentiment .good {
+.metric-card.positive strong,
+.sentiment .good,
+.positive-text {
   color: #16a34a;
 }
 
-.sentiment .bad {
+.metric-card.negative strong,
+.sentiment .bad,
+.negative-text {
   color: #dc2626;
+}
+
+.metric-card.neutral strong,
+.sentiment .neutral-text,
+.neutral-text {
+  color: #ca8a04;
 }
 
 @media (max-width: 760px) {

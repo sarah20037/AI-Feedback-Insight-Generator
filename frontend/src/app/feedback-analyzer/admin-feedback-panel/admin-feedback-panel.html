@@ -9,7 +9,7 @@
     <span>{{ errorMessage }}</span>
     <button type="button" class="ghost-button" (click)="refreshFeedback()">Retry</button>
   </div>
-  <p class="empty-state" *ngIf="!isListLoading && !errorMessage && feedbackList.length === 0">No feedback has been submitted yet.</p>
+  <p class="empty-state" *ngIf="hasLoadedOverview && !isListLoading && !errorMessage && totalFeedback === 0">No feedback has been submitted yet.</p>
 
   <div class="insight-dashboard" *ngIf="feedbackList.length > 0">
     <article class="metric-card total">
@@ -42,18 +42,18 @@
     <div class="chart-legend">
       <div>
         <i class="legend-dot positive-dot"></i>
-        <span>Positive</span>
-        <strong>{{ positiveCount }} ({{ positivePercent }}%)</strong>
+        <span class="positive-text">Positive</span>
+        <strong class="positive-text">{{ positiveCount }} ({{ positivePercent }}%)</strong>
       </div>
       <div>
         <i class="legend-dot negative-dot"></i>
-        <span>Negative</span>
-        <strong>{{ negativeCount }} ({{ negativePercent }}%)</strong>
+        <span class="negative-text">Negative</span>
+        <strong class="negative-text">{{ negativeCount }} ({{ negativePercent }}%)</strong>
       </div>
       <div>
         <i class="legend-dot neutral-dot"></i>
-        <span>Neutral</span>
-        <strong>{{ neutralCount }} ({{ neutralPercent }}%)</strong>
+        <span class="neutral-text">Neutral</span>
+        <strong class="neutral-text">{{ neutralCount }} ({{ neutralPercent }}%)</strong>
       </div>
     </div>
   </div>
@@ -87,11 +87,11 @@
   <div class="list-heading" *ngIf="feedbackList.length > 0">
     <div>
       <span>Latest Feedback</span>
-      <h3>{{ showAllFeedback ? 'All Feedback' : 'Top 10 Latest Feedback' }}</h3>
+      <h3>Latest Feedback</h3>
     </div>
 
-    <button type="button" class="ghost-button" *ngIf="hasMoreFeedback" (click)="toggleFeedbackView()">
-      {{ showAllFeedback ? 'Show Top 10' : 'View All Feedback' }}
+    <button type="button" class="ghost-button" *ngIf="hasMoreFeedback" (click)="loadNextFeedbackPage()" [disabled]="isNextPageLoading">
+      {{ isNextPageLoading ? 'Loading...' : 'Load Next 10' }}
     </button>
   </div>
 
@@ -109,7 +109,11 @@
       </div>
       <div class="sentiment">
         <span>Sentiment</span>
-        <strong [class.good]="f.sentiment === 'POSITIVE'" [class.bad]="f.sentiment === 'NEGATIVE'">
+        <strong
+          [class.good]="f.sentiment === 'POSITIVE'"
+          [class.bad]="f.sentiment === 'NEGATIVE'"
+          [class.neutral-text]="f.sentiment === 'NEUTRAL'"
+        >
           {{ f.sentiment }}
         </strong>
       </div>

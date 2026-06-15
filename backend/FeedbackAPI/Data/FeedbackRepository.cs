@@ -4,7 +4,7 @@ using System.Data;
 
 namespace FeedbackAPI.Data
 {
-    public class FeedbackRepository
+    public partial class FeedbackRepository
     {
         private readonly IConfiguration _configuration;
 

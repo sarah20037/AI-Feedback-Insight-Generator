@@ -1,0 +1,35 @@
+<section class="content-panel">
+  <div class="section-heading" *ngIf="!hasSubmittedFeedback">
+    <p class="eyebrow">Customer View</p>
+    <h2>Share Your Feedback</h2>
+    <p>Your note helps the HR team understand what is working and where support is needed.</p>
+  </div>
+
+  <ng-container *ngIf="!hasSubmittedFeedback; else submittedView">
+    <label for="feedback">Feedback</label>
+    <textarea
+      id="feedback"
+      [(ngModel)]="feedbackText"
+      placeholder="Write your feedback here..."
+    ></textarea>
+
+    <div class="actions">
+      <span>{{ feedbackText.length }} characters</span>
+      <button type="button" (click)="submitFeedback()" [disabled]="isLoading">
+        {{ isLoading ? 'Submitting...' : 'Submit Feedback' }}
+      </button>
+    </div>
+
+    <p class="loading-message" *ngIf="isLoading">Submitting your feedback, please wait...</p>
+    <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+  </ng-container>
+
+  <ng-template #submittedView>
+    <div class="submitted-box">
+      <p class="eyebrow">Feedback Submitted</p>
+      <h2>Thank you, {{ userName }}</h2>
+      <p>{{ successMessage }}</p>
+      <button type="button" (click)="submitAnotherFeedback()">Submit Another Feedback</button>
+    </div>
+  </ng-template>
+</section>

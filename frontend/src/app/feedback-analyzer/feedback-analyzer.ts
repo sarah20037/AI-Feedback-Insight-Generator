@@ -18,6 +18,7 @@ export class FeedbackAnalyzerComponent {
   role: string | null = this.getStoredValue('role');
   userName: string = this.getStoredValue('user') || 'User';
   customerId: number | null = this.getStoredNumber('customerId');
+  isFirstTimeUser: boolean = this.getStoredValue('isFirstTimeUser') === 'true';
   successMessage: string = '';
   errorMessage: string = '';
   isLoading: boolean = false;
@@ -75,6 +76,7 @@ export class FeedbackAnalyzerComponent {
     localStorage.removeItem('role');
     localStorage.removeItem('user');
     localStorage.removeItem('customerId');
+    localStorage.removeItem('isFirstTimeUser');
     location.reload();
   }
 
