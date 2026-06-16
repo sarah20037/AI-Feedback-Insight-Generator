@@ -9,6 +9,8 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<FeedbackAnalysisService>();
 
+builder.Services.AddScoped<PasswordHashingService>();
+
 builder.Services.AddScoped<FeedbackRepository>();
 
 builder.Services.AddEndpointsApiExplorer();

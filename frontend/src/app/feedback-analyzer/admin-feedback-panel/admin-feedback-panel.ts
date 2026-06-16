@@ -51,7 +51,7 @@ export class AdminFeedbackPanelComponent implements OnInit {
     this.api.getFeedbackPage(this.currentPage + 1, this.pageSize).pipe(
       finalize(() => {
         this.isNextPageLoading = false;
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       })
     ).subscribe({
       next: (result) => {
@@ -66,7 +66,7 @@ export class AdminFeedbackPanelComponent implements OnInit {
         this.errorMessage = error.name === 'TimeoutError'
           ? 'Next feedback page request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
           : 'Unable to load the next 10 feedback records from backend.';
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
     });
   }
@@ -90,7 +90,7 @@ export class AdminFeedbackPanelComponent implements OnInit {
     const positiveEnd = this.toPiePercent(this.positiveCount);
     const negativeEnd = positiveEnd + this.toPiePercent(this.negativeCount);
 
-    return `conic-gradient(#16a34a 0 ${positiveEnd}%, #dc2626 ${positiveEnd}% ${negativeEnd}%, #ca8a04 ${negativeEnd}% 100%)`;
+    return `conic-gradient(#16a34a 0 ${positiveEnd}%, #dc2626 ${positiveEnd}% ${negativeEnd}%, #f2f20b ${negativeEnd}% 100%)`;
   }
 
   get positivePercent(): number {
@@ -145,7 +145,7 @@ export class AdminFeedbackPanelComponent implements OnInit {
     this.api.getFeedback().pipe(
       finalize(() => {
         this.isListLoading = false;
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       })
     ).subscribe({
       next: (feedback) => {
@@ -164,7 +164,7 @@ export class AdminFeedbackPanelComponent implements OnInit {
         this.errorMessage = error.name === 'TimeoutError'
           ? 'Feedback records request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
           : 'Unable to load feedback records from backend. Please start the backend API and try again.';
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
     });
   }

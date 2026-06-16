@@ -89,10 +89,6 @@
       <span>Latest Feedback</span>
       <h3>Latest Feedback</h3>
     </div>
-
-    <button type="button" class="ghost-button" *ngIf="hasMoreFeedback" (click)="loadNextFeedbackPage()" [disabled]="isNextPageLoading">
-      {{ isNextPageLoading ? 'Loading...' : 'Load Next 10' }}
-    </button>
   </div>
 
   <div class="feedback-list" *ngIf="feedbackList.length > 0">
@@ -119,4 +115,14 @@
       </div>
     </article>
   </div>
+
+  <button
+    type="button"
+    class="ghost-button"
+    *ngIf="feedbackList.length > 0 && hasMoreFeedback"
+    (click)="loadNextFeedbackPage()"
+    [disabled]="isNextPageLoading"
+  >
+    {{ isNextPageLoading ? 'Loading...' : 'Load Next 10' }}
+  </button>
 </section>

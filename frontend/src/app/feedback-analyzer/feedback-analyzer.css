@@ -269,7 +269,7 @@ textarea:focus {
 }
 
 .metric-card.neutral {
-  border-top: 4px solid #ca8a04;
+  border-top: 4px solid #f2f20b;
 }
 
 .action-grid {
@@ -373,7 +373,7 @@ textarea:focus {
 }
 
 .neutral-dot {
-  background: #ca8a04;
+  background: #f2f20b;
 }
 
 
@@ -483,7 +483,7 @@ textarea:focus {
 .metric-card.neutral strong,
 .sentiment .neutral-text,
 .neutral-text {
-  color: #ca8a04;
+  color: #f2f20b;
 }
 
 @media (max-width: 760px) {

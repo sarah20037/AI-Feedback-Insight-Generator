@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using FeedbackAPI.Models;
-using System.Security.Cryptography;
+using FeedbackAPI.Services;
 
 namespace FeedbackAPI.Controllers
 {
@@ -10,10 +10,12 @@ namespace FeedbackAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
+        private readonly PasswordHashingService _passwordHashingService;
 
-        public AuthController(IConfiguration configuration)
+        public AuthController(IConfiguration configuration, PasswordHashingService passwordHashingService)
         {
             _configuration = configuration;
+            _passwordHashingService = passwordHashingService;
         }
 
         [HttpPost("register")]
@@ -60,7 +62,7 @@ namespace FeedbackAPI.Controllers
                 cmd.Parameters.AddWithValue("@FullName", customer.FullName);
                 cmd.Parameters.AddWithValue("@Email", customer.Email);
                 cmd.Parameters.AddWithValue("@Username", customer.Username);
-                cmd.Parameters.AddWithValue("@PasswordHash", HashPassword(customer.PasswordHash));
+                cmd.Parameters.AddWithValue("@PasswordHash", _passwordHashingService.HashPassword(customer.PasswordHash));
 
                 int customerId = (int)cmd.ExecuteScalar();
 
@@ -102,14 +104,14 @@ namespace FeedbackAPI.Controllers
 
                 using var reader = cmd.ExecuteReader();
 
-                if (reader.Read() && VerifyPassword(request.PasswordHash, reader["PasswordHash"].ToString() ?? ""))
+                if (reader.Read() && _passwordHashingService.VerifyPassword(request.PasswordHash, reader["PasswordHash"].ToString() ?? ""))
                 {
                     int customerId = Convert.ToInt32(reader["CustomerId"]);
                     string username = reader["Username"].ToString() ?? "";
                     string fullName = reader["FullName"].ToString() ?? "";
                     string storedPassword = reader["PasswordHash"].ToString() ?? "";
 
-                    if (!IsHashedPassword(storedPassword))
+                    if (!_passwordHashingService.IsHashedPassword(storedPassword))
                     {
                         reader.Close();
                         UpdatePasswordHash(con, customerId, request.PasswordHash);
@@ -157,50 +159,10 @@ namespace FeedbackAPI.Controllers
             return Unauthorized("Invalid Admin Credentials");
         }
 
-        private static string HashPassword(string password)
-        {
-            byte[] salt = RandomNumberGenerator.GetBytes(16);
-            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, 100_000, HashAlgorithmName.SHA256, 32);
-
-            return $"PBKDF2$100000${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
-        }
-
-        private static bool VerifyPassword(string password, string storedPassword)
-        {
-            if (!IsHashedPassword(storedPassword))
-            {
-                return storedPassword == password;
-            }
-
-            string[] parts = storedPassword.Split('$');
-            if (parts.Length != 4 || !int.TryParse(parts[1], out int iterations))
-            {
-                return false;
-            }
-
-            try
-            {
-                byte[] salt = Convert.FromBase64String(parts[2]);
-                byte[] expectedHash = Convert.FromBase64String(parts[3]);
-                byte[] actualHash = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA256, expectedHash.Length);
-
-                return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
-        }
-
-        private static bool IsHashedPassword(string storedPassword)
-        {
-            return storedPassword.StartsWith("PBKDF2$", StringComparison.Ordinal);
-        }
-
-        private static void UpdatePasswordHash(SqlConnection con, int customerId, string password)
+        private void UpdatePasswordHash(SqlConnection con, int customerId, string password)
         {
             using var cmd = new SqlCommand("UPDATE Customers SET PasswordHash = @PasswordHash WHERE CustomerId = @CustomerId", con);
-            cmd.Parameters.AddWithValue("@PasswordHash", HashPassword(password));
+            cmd.Parameters.AddWithValue("@PasswordHash", _passwordHashingService.HashPassword(password));
             cmd.Parameters.AddWithValue("@CustomerId", customerId);
             cmd.ExecuteNonQuery();
         }
