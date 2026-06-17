@@ -1,52 +1,56 @@
-# AI Feedback Analyzer
+# AI Feedback Analyzer (Simple Guide)
 
-AI Feedback Analyzer is a full-stack web application designed for customer feedback submission, automatic AI categorization, sentiment parsing, and comprehensive admin analysis. The system communicates with the OpenRouter Chat Completions API using a Llama-3 instruction model, processes the feedback, and saves structured findings to a Microsoft SQL Server database.
+AI Feedback Analyzer is a simple webpage that lets customers submit text reviews and automatically uses AI to analyze them. 
+
+The AI scans the review text to generate:
+- **Sentiment** (Positive, Negative, or Neutral)
+- **Summary** (A short summary of the review)
+- **Category** (e.g. Speed, Design, Bug, etc.)
+- **Recommended Action** (Suggested fix)
+
+The analyzed feedback is saved to a SQL database and shown on an Admin Dashboard screen using nice pie charts.
 
 ---
 
-## Technical Architecture & Documentation
-Detailed documentation is stored in the `docs/` folder:
-- [Architecture Overview](./docs/architecture_overview.md) — Layered architecture outline, technology roles, and structural diagram.
-- [API Contracts](./docs/api_contracts.md) — Full API request and response bodies for auth and feedback routes.
-- [Data Flow / Sequence Diagrams](./docs/data_flow.md) — Sequence charts showing registry, feedback analysis, and admin aggregations.
-- [Assumptions Made](./docs/assumptions.md) — System configurations, hashing configurations, database mappings, and fallbacks.
+## Simple Documentation
+Detailed guides are in the `docs/` folder:
+- [Architecture Overview](./docs/architecture_overview.md) — How the database, server, and website connect.
+- [API Contracts](./docs/api_contracts.md) — The parameters the server sends and receives.
+- [Data Flow / Sequence Diagrams](./docs/data_flow.md) — Step-by-step maps of how data moves.
+- [Assumptions Made](./docs/assumptions.md) — Things we assumed during development.
 
 ---
 
 ## Tech Stack Used
 
-### Frontend
-- **Framework**: Angular 21 (TypeScript, standalone components)
-- **Styling**: Modern CSS (featuring responsive layout, custom palettes, glassmorphism)
+### Frontend (Website UI)
+- **Angular** (TypeScript, HTML, CSS)
 
-### Backend
-- **Framework**: ASP.NET Core Web API (.NET 10)
-- **Language**: C#
+### Backend (Web Server)
+- **ASP.NET Core** (C#)
 
 ### Database
-- **Provider**: Microsoft SQL Server
-- **Data Access**: ADO.NET using `Microsoft.Data.SqlClient` and Parameterized Stored Procedures
+- **Microsoft SQL Server** (using Stored Procedures)
 
-### AI Integration
-- **API Provider**: OpenRouter Chat API
-- **AI Model**: `meta-llama/llama-3-8b-instruct`
+### AI Model
+- **OpenRouter API** (`meta-llama/llama-3-8b-instruct`)
 
 ---
 
 ## Setup Instructions
 
-### 1. Install Dependencies
-
-**Frontend**:
+### 1. Install Frontend Dependencies
+Open your command terminal, navigate to the `frontend` folder, and install package dependencies:
 ```powershell
 cd frontend
 npm install
 ```
 
-### 2. Configure Database & APIs
-Update database connection strings and OpenRouter API credentials in the backend configurations file:
+### 2. Configure Database & AI Keys
+Open the backend settings file:
+`backend/FeedbackAPI/appsettings.json`
 
-**File**: `backend/FeedbackAPI/appsettings.json`
+Add your SQL database connection string and your OpenRouter API Key:
 ```json
 {
   "ConnectionStrings": {
@@ -60,62 +64,69 @@ Update database connection strings and OpenRouter API credentials in the backend
 }
 ```
 
+### 3. Check Database
+Make sure:
+- Microsoft SQL Server is running.
+- You created a database named `AIFeedbackDB`.
+- You ran the SQL scripts from the `Stored Procedures` folder in your database.
+
 ---
 
 ## How to Run API
 
-1. Navigate to the backend project folder:
+1. Open a command terminal.
+2. Go to the backend directory:
    ```powershell
    cd backend/FeedbackAPI
    ```
-2. Launch the Web API project:
+3. Run the server:
    ```powershell
    dotnet run
    ```
-   - **Local URL**: `http://localhost:5048`
-   - **Swagger Documentation**: `http://localhost:5048/swagger`
+   - Server runs at: `http://localhost:5048`
+   - View API Swagger documentation: `http://localhost:5048/swagger`
 
 ---
 
 ## How to Run UI
 
-1. Navigate to the frontend project folder:
+1. Open a new command terminal.
+2. Go to the frontend directory:
    ```powershell
    cd frontend
    ```
-2. Start the local development server:
+3. Start the website:
    ```powershell
    npm start
    ```
-   - **App URL**: `http://localhost:4200`
-   - **Target API Proxy**: `http://localhost:5048/api`
+   - Open your browser to: `http://localhost:4200`
 
 ---
 
 ## How to Run Tests
 
-### Backend Unit Tests
-We use xUnit for backend test suites.
-To run the C# unit tests:
-```powershell
-cd backend/FeedbackAPI.Tests
-dotnet test
-```
+### Run Backend Server Tests
+To run the server unit tests:
+1. Open a terminal.
+2. Go to the test directory:
+   ```powershell
+   cd backend/FeedbackAPI.Tests
+   ```
+3. Run test command:
+   ```powershell
+   dotnet test
+   ```
 
-### Frontend Unit Tests
-We use Jasmine/Karma framework.
-To run the Angular unit tests:
-```powershell
-cd frontend
-npm test
-```
+### Run Frontend Website Tests
+To run the browser unit tests:
+1. Open a terminal.
+2. Go to the frontend directory:
+   ```powershell
+   cd frontend
+   ```
+3. Run test command:
+   ```powershell
+   npm test
+   ```
 
 ---
-
-## Sample Screenshots
-
-### Customer Feedback Form
-![Customer Feedback Form](./screenshots/customer_feedback_form.png)
-
-### Admin Analysis Dashboard
-![Admin Dashboard](./screenshots/admin_dashboard.png)
