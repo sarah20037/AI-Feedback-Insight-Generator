@@ -26,7 +26,6 @@
       ></textarea>
 
       <div class="actions">
-        <span>{{ feedbackText.length }} characters</span>
         <button type="button" (click)="submitFeedback()" [disabled]="isLoading">
           {{ isLoading ? 'Submitting...' : 'Submit Feedback' }}
         </button>
@@ -45,6 +44,12 @@
       </div>
     </ng-template>
   </section>
+
+  <app-customer-history
+    *ngIf="role === 'customer'"
+    [customerId]="customerId"
+    [refreshKey]="historyRefreshKey"
+  ></app-customer-history>
 
   <app-admin-feedback-panel *ngIf="role === 'admin'"></app-admin-feedback-panel>
 </main>

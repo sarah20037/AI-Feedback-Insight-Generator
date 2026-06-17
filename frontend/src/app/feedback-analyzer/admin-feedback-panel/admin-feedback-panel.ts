@@ -1,6 +1,5 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { finalize } from 'rxjs/operators';
 import { ApiService, FeedbackItem } from '../../services/api';
 
 interface NegativeFeedbackInsight {
@@ -48,21 +47,19 @@ export class AdminFeedbackPanelComponent implements OnInit {
     this.isNextPageLoading = true;
     this.errorMessage = '';
 
-    this.api.getFeedbackPage(this.currentPage + 1, this.pageSize).pipe(
-      finalize(() => {
-        this.isNextPageLoading = false;
-        this.cdr.markForCheck();
-      })
-    ).subscribe({
+    this.api.getFeedbackPage(this.currentPage + 1, this.pageSize).subscribe({
       next: (result) => {
+        this.isNextPageLoading = false;
         this.feedbackList = [
           ...this.feedbackList,
           ...this.sortLatestFirst(result.items),
         ];
         this.currentPage = result.page;
         this.totalFeedback = result.totalCount;
+        this.cdr.markForCheck();
       },
       error: (error) => {
+        this.isNextPageLoading = false;
         this.errorMessage = error.name === 'TimeoutError'
           ? 'Next feedback page request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
           : 'Unable to load the next 10 feedback records from backend.';
@@ -142,13 +139,9 @@ export class AdminFeedbackPanelComponent implements OnInit {
     this.isListLoading = true;
     this.errorMessage = '';
 
-    this.api.getFeedback().pipe(
-      finalize(() => {
-        this.isListLoading = false;
-        this.cdr.markForCheck();
-      })
-    ).subscribe({
+    this.api.getFeedback().subscribe({
       next: (feedback) => {
+        this.isListLoading = false;
         const latestFeedback = this.sortLatestFirst(feedback);
         this.feedbackList = latestFeedback.slice(0, this.pageSize);
         this.topNegativeFeedbacks = this.toNegativeInsights(this.getTopNegativeFeedbacks(latestFeedback));
@@ -158,8 +151,10 @@ export class AdminFeedbackPanelComponent implements OnInit {
         this.neutralCount = this.countBySentiment(latestFeedback, 'NEUTRAL');
         this.currentPage = 1;
         this.hasLoadedOverview = true;
+        this.cdr.markForCheck();
       },
       error: (error) => {
+        this.isListLoading = false;
         this.hasLoadedOverview = true;
         this.errorMessage = error.name === 'TimeoutError'
           ? 'Feedback records request timed out. Please make sure the backend API is running at http://127.0.0.1:5048.'
@@ -172,16 +167,26 @@ export class AdminFeedbackPanelComponent implements OnInit {
   private toNegativeInsights(feedback: FeedbackItem[]): NegativeFeedbackInsight[] {
     if (!Array.isArray(feedback)) return [];
 
-    const repeatCounts = feedback.reduce<Record<string, number>>((counts, item) => {
+    const repeatCounts: { [key: string]: number } = {};
+    for (let item of feedback) {
       const issueCategory = this.getNegativeIssueCategory(item);
-      counts[issueCategory] = (counts[issueCategory] || 0) + 1;
-      return counts;
-    }, {});
+      if (repeatCounts[issueCategory]) {
+        repeatCounts[issueCategory] += 1;
+      } else {
+        repeatCounts[issueCategory] = 1;
+      }
+    }
 
-    return feedback.map((item) => ({
-      feedback: item,
-      repeatCount: repeatCounts[this.getNegativeIssueCategory(item)] || 1,
-    }));
+    const result: NegativeFeedbackInsight[] = [];
+    for (let item of feedback) {
+      const issueCategory = this.getNegativeIssueCategory(item);
+      result.push({
+        feedback: item,
+        repeatCount: repeatCounts[issueCategory] || 1,
+      });
+    }
+
+    return result;
   }
 
   private sortLatestFirst(feedback: FeedbackItem[]): FeedbackItem[] {
@@ -197,18 +202,35 @@ export class AdminFeedbackPanelComponent implements OnInit {
   }
 
   private getTopNegativeFeedbacks(feedback: FeedbackItem[]): FeedbackItem[] {
-    const negativeFeedback = feedback.filter((item) => item.sentiment === 'NEGATIVE');
-    const repeatCounts = negativeFeedback.reduce<Record<string, number>>((counts, item) => {
-      const issueCategory = this.getNegativeIssueCategory(item);
-      counts[issueCategory] = (counts[issueCategory] || 0) + 1;
-      return counts;
-    }, {});
+    const negativeFeedback: FeedbackItem[] = [];
+    for (let item of feedback) {
+      if (item.sentiment === 'NEGATIVE') {
+        negativeFeedback.push(item);
+      }
+    }
 
-    return negativeFeedback
-      .sort((a, b) => {
-        return (repeatCounts[this.getNegativeIssueCategory(b)] || 0) - (repeatCounts[this.getNegativeIssueCategory(a)] || 0)
-          || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      })
-      .slice(0, 5);
+    const repeatCounts: { [key: string]: number } = {};
+    for (let item of negativeFeedback) {
+      const issueCategory = this.getNegativeIssueCategory(item);
+      if (repeatCounts[issueCategory]) {
+        repeatCounts[issueCategory] += 1;
+      } else {
+        repeatCounts[issueCategory] = 1;
+      }
+    }
+
+    negativeFeedback.sort((a, b) => {
+      const catA = this.getNegativeIssueCategory(a);
+      const catB = this.getNegativeIssueCategory(b);
+      const countA = repeatCounts[catA] || 0;
+      const countB = repeatCounts[catB] || 0;
+
+      if (countB !== countA) {
+        return countB - countA;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return negativeFeedback.slice(0, 5);
   }
 }

@@ -1,2 +1,9 @@
-<app-login *ngIf="!role"></app-login>
-<app-feedback-analyzer *ngIf="role"></app-feedback-analyzer>
+<app-login *ngIf="!role" (loginSuccess)="handleLoginSuccess($event)"></app-login>
+<app-feedback-analyzer 
+  *ngIf="role" 
+  [role]="role" 
+  [userName]="user" 
+  [customerId]="customerId" 
+  [isFirstTimeUser]="isFirstTimeUser"
+  (logoutEvent)="handleLogout()"
+></app-feedback-analyzer>

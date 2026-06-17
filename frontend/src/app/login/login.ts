@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api';
 
@@ -20,6 +20,8 @@ export class LoginComponent {
   mode: LoginMode = 'login';
   errorMessage: string = '';
   isLoading: boolean = false;
+
+  @Output() loginSuccess = new EventEmitter<any>();
 
   constructor(private api: ApiService) {}
 
@@ -79,14 +81,12 @@ export class LoginComponent {
   }
 
   private startSession(username: string, role: 'customer' | 'admin', customerId?: number, isFirstTimeUser = false) {
-    if (typeof window === 'undefined') return;
-
-    localStorage.setItem('role', role);
-    localStorage.setItem('user', username);
-    localStorage.setItem('isFirstTimeUser', isFirstTimeUser ? 'true' : 'false');
-    if (customerId) localStorage.setItem('customerId', customerId.toString());
-
-    location.reload();
+    this.loginSuccess.emit({
+      role: role,
+      username: username,
+      customerId: customerId,
+      isFirstTimeUser: isFirstTimeUser
+    });
   }
 
   private showError(message: string) {

@@ -486,6 +486,10 @@ textarea:focus {
   color: #f2f20b;
 }
 
+.customer-history-panel .feedback-card {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 760px) {
   .topbar,
   .session,
