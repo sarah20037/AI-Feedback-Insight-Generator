@@ -1,4 +1,4 @@
-# AI Feedback Analyzer (Simple Guide)
+# AI Feedback Analyzer 
 
 AI Feedback Analyzer is a simple webpage that lets customers submit text reviews and automatically uses AI to analyze them. 
 
