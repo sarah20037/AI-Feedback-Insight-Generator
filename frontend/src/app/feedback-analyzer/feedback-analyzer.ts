@@ -38,6 +38,16 @@ export class FeedbackAnalyzerComponent {
       return;
     }
 
+    if (text.length < 3) {
+      this.errorMessage = 'Feedback must be at least 3 characters.';
+      return;
+    }
+
+    if (text.length > 1000) {
+      this.errorMessage = 'Feedback must be 1000 characters or less.';
+      return;
+    }
+
     if (!this.customerId) {
       this.errorMessage = 'Please login again before submitting feedback.';
       return;

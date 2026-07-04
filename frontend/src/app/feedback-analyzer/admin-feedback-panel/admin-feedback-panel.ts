@@ -87,7 +87,7 @@ export class AdminFeedbackPanelComponent implements OnInit {
     const positiveEnd = this.toPiePercent(this.positiveCount);
     const negativeEnd = positiveEnd + this.toPiePercent(this.negativeCount);
 
-    return `conic-gradient(#16a34a 0 ${positiveEnd}%, #dc2626 ${positiveEnd}% ${negativeEnd}%, #f2f20b ${negativeEnd}% 100%)`;
+    return `conic-gradient(#16a34a 0 ${positiveEnd}%, #dc2626 ${positiveEnd}% ${negativeEnd}%, #ca8a04 ${negativeEnd}% 100%)`;
   }
 
   get positivePercent(): number {

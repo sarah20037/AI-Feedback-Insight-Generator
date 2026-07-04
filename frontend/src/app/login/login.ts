@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api';
+import { finalize } from 'rxjs/operators';
 
 type LoginMode = 'login' | 'register' | 'admin';
 
@@ -63,17 +64,23 @@ export class LoginComponent {
     this.isLoading = true;
 
     if (this.mode === 'register') {
-      this.api.register(name, loginId, this.password).subscribe({
+      this.api.register(name, loginId, this.password).pipe(
+        finalize(() => this.isLoading = false)
+      ).subscribe({
         next: (response) => this.startSession(response.fullName || name, 'customer', response.customerId, true),
         error: () => this.showError('Registration failed. The email may already be registered.'),
       });
     } else if (this.mode === 'admin') {
-      this.api.adminLogin(loginId, this.password).subscribe({
+      this.api.adminLogin(loginId, this.password).pipe(
+        finalize(() => this.isLoading = false)
+      ).subscribe({
         next: (response) => this.startSession(response.username || 'Admin', 'admin'),
         error: () => this.showError('Admin username or password is incorrect.'),
       });
     } else {
-      this.api.login(loginId, this.password).subscribe({
+      this.api.login(loginId, this.password).pipe(
+        finalize(() => this.isLoading = false)
+      ).subscribe({
         next: (response) => this.startSession(response.fullName || response.username, 'customer', response.customerId),
         error: () => this.showError('Email or password is incorrect.'),
       });

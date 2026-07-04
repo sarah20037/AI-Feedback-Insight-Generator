@@ -15,11 +15,31 @@ export class AppComponent {
   customerId: number | null = null;
   isFirstTimeUser: boolean = false;
 
+  constructor() {
+    if (typeof localStorage === 'undefined') return;
+
+    const savedCustomerId = Number(localStorage.getItem('customerId'));
+
+    if (savedCustomerId) {
+      this.role = 'customer';
+      this.user = 'User';
+      this.customerId = savedCustomerId;
+    }
+  }
+
   handleLoginSuccess(event: any) {
     this.role = event.role;
     this.user = event.username;
     this.customerId = event.customerId;
     this.isFirstTimeUser = event.isFirstTimeUser;
+
+    if (typeof localStorage !== 'undefined') {
+      if (this.role === 'customer' && this.customerId) {
+        localStorage.setItem('customerId', String(this.customerId));
+      } else {
+        localStorage.removeItem('customerId');
+      }
+    }
   }
 
   handleLogout() {
@@ -27,5 +47,9 @@ export class AppComponent {
     this.user = '';
     this.customerId = null;
     this.isFirstTimeUser = false;
+
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('customerId');
+    }
   }
 }

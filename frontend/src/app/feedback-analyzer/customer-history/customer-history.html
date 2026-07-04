@@ -4,9 +4,6 @@
       <p class="eyebrow">History</p>
       <h2>Your Submitted Feedback</h2>
     </div>
-    <button type="button" class="ghost-button" (click)="loadPastFeedbacks()" [disabled]="isLoading">
-      {{ isLoading ? 'Loading...' : hasRequestedHistory ? 'Refresh' : 'Load History' }}
-    </button>
   </div>
 
   <p class="loading-message" *ngIf="isLoading">Loading your feedback history...</p>

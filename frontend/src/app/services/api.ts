@@ -72,21 +72,21 @@ export class ApiService {
       email,
       username: email,
       passwordHash: password,
-    });
+    }).pipe(timeout(8000));
   }
 
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.baseUrl}/auth/login`, {
       username: email,
       passwordHash: password,
-    });
+    }).pipe(timeout(8000));
   }
 
   adminLogin(username: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.baseUrl}/auth/admin-login`, {
       username,
       passwordHash: password,
-    });
+    }).pipe(timeout(8000));
   }
 
   submitFeedback(customerId: number, feedbackText: string): Observable<SubmitFeedbackResponse> {

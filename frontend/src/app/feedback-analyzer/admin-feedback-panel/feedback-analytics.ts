@@ -80,7 +80,7 @@ export function getPieChartBackground(totalFeedback: number, positiveCount: numb
   if (totalFeedback === 0) return '#e5e7eb';
   const pos = toPiePercent(positiveCount, totalFeedback);
   const neg = pos + toPiePercent(negativeCount, totalFeedback);
-  return `conic-gradient(#16a34a 0 ${pos}%, #dc2626 ${pos}% ${neg}%, #f2f20b ${neg}% 100%)`;
+  return `conic-gradient(#16a34a 0 ${pos}%, #dc2626 ${pos}% ${neg}%, #ca8a04 ${neg}% 100%)`;
 }
 
 export function getFeedbackStats(feedback: FeedbackItem[]): FeedbackStats {
