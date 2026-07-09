@@ -128,5 +128,25 @@ To run the browser unit tests:
    ```powershell
    npm test
    ```
+## Screenshots
 
+### Screenshot 1
+![Screenshot 1](./screenshots/1.png)
+
+<br>
+
+### Screenshot 2
+![Screenshot 2](./screenshots/2.png)
+
+<br>
+
+### Screenshot 3
+![Screenshot 3](./screenshots/3.png)
+
+<br>
+
+### Screenshot 4
+![Screenshot 4](./screenshots/4.png)
+
+---
 ---
